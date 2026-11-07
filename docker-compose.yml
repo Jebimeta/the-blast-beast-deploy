@@ -28,7 +28,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-blastbeast}
       SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8088}
       JWT_SECRET: ${JWT_SECRET:-}
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     ports:
       - "8080:8080"
 
@@ -38,6 +38,7 @@ services:
       - api
     environment:
       API_BASE_URL: http://api:8080
+      SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8088}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
       PORT: 4000
     ports:

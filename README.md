@@ -29,25 +29,38 @@ fuente de verdad del sistema:
 
 - [Auditoría de los repos de referencia](./the-blast-beast-api/docs/00-auditoria-repos.md)
 - [Arquitectura, modelo de datos, API y roadmap](./the-blast-beast-api/docs/01-arquitectura.md)
+- [M1 — Lectura pública: endpoints, seed y SEO](./the-blast-beast-api/docs/02-lectura-publica.md)
 
 ## Estado
 
-**M0 — Fundaciones, completado y verificado en ejecución.**
+**M1 — Lectura pública, completado y verificado en ejecución.**
 
 | Pieza | Estado |
 |---|---|
-| Contrato OpenAPI 3.0 + generación de delegates | ✅ |
-| Esquema Flyway `V1__baseline.sql` (11 tablas, full-text, `pg_trgm`) | ✅ aplicado en PostgreSQL 17.11 |
-| Seguridad base (stateless, CORS, cabeceras) | ✅ |
-| Errores RFC 9457 (`ProblemDetail` + `ErrorCode`) | ✅ |
-| API: `/api/v1/ping`, Swagger UI, `/actuator/health` | ✅ 200 |
-| Web Angular 22 + SSR + Tailwind 4, integrada con la API | ✅ 200 |
-| Tests: 1 backend, 3 frontend | ✅ |
+| Contrato OpenAPI 3.0 con endpoints de lectura y `delegatePattern` | ✅ |
+| Esquema Flyway `V1__baseline.sql` (11 tablas, full-text, `pg_trgm`) | ✅ PostgreSQL 17.11 |
+| API: artículos, destacados, detalle, categorías, bandas y búsqueda | ✅ |
+| Full-text en español con filtros combinables y orden | ✅ |
+| Seed de desarrollo: 8 noticias, 4 categorías, bandas y etiquetas | ✅ perfil `dev` |
+| Web: portada, archivo, secciones, detalle, bandas, búsqueda y 404/410 | ✅ |
+| SEO: title, meta, canonical, Open Graph, JSON-LD y `noindex` en errores | ✅ |
+| SSR por petición con estados HTTP reales (404/410) | ✅ |
+| Tests: 10 backend, 3 frontend | ✅ |
 | Docker multi-stage + docker compose | ✅ stack completo sano (db, api, web, caddy) |
 | CI en GitHub Actions (build, tests, imagen GHCR) | ✅ escrito |
-| Repos git inicializados y commit inicial | ✅ |
 
-Sin funcionalidad de negocio todavía: los artículos llegan en M1.
+Rutas públicas del sitio:
+
+| Ruta | Contenido |
+|---|---|
+| `/` | Portada con destacados, secciones y últimas noticias |
+| `/articulos` | Archivo completo con orden y paginación |
+| `/categorias/:slug` | Sección |
+| `/articulos/:slug` | Detalle de la noticia |
+| `/bandas/:slug` | Banda y sus noticias |
+| `/buscar?q=` | Búsqueda full-text |
+
+M2 (redacción: autenticación, CRUD y editor) es el siguiente hito.
 
 ## Arranque rápido
 
@@ -57,14 +70,18 @@ Stack completo en contenedores (PostgreSQL + API + web SSR + Caddy):
 docker compose up -d --build
 ```
 
-Los valores por defecto funcionan tal cual. Para cambiar puertos, credenciales o dominio:
+Los valores por defecto funcionan tal cual. El perfil `dev` está activo, así que la base de
+datos se carga con el contenido de ejemplo. Para cambiar puertos, credenciales o dominio:
 `cp .env.example .env` y edita el archivo.
 
 - Sitio completo: http://localhost:8088
-- API a través de Caddy: http://localhost:8088/api/v1/ping
+- API a través de Caddy: http://localhost:8088/api/v1/articles
 - API directa: http://localhost:8080/api/v1/ping
 - Swagger: http://localhost:8080/swagger-ui.html
 - Health: http://localhost:8080/actuator/health
+
+`SITE_BASE_URL` (por defecto `http://localhost:8088`) alimenta canonical y Open Graph del
+SSR. En producción se apunta al dominio real y `ALLOWED_HOSTS` al host público.
 
 Desarrollo con recarga en caliente (solo la base de datos en Docker):
 
@@ -72,7 +89,7 @@ Desarrollo con recarga en caliente (solo la base de datos en Docker):
 docker compose up -d db
 
 cd the-blast-beast-api
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 cd ../the-blast-beast-web
 npm install
@@ -80,7 +97,7 @@ npm start
 ```
 
 - Web: http://localhost:4200
-- API: http://localhost:8080/api/v1/ping
+- API: http://localhost:8080/api/v1/articles
 
 Las variables de entorno y sus valores por defecto están documentadas en
 [`the-blast-beast-api/.env.example`](./the-blast-beast-api/.env.example). El archivo no se
@@ -110,7 +127,7 @@ $env:Path = "$env:LOCALAPPDATA\Programs\DockerDesktop\resources\bin;$env:Path"
 
 ### Entorno verificado en esta máquina
 
-M0 se validó de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
+M1 se validó de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
 
 - Docker Desktop 4.98 en modo usuario, backend WSL 2, Engine 29.9.2 y Compose v5.6.1.
 - `docker compose up -d --build` levanta PostgreSQL 17.11, la API, el SSR y Caddy; los cuatro
@@ -118,10 +135,14 @@ M0 se validó de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
 - La API arranca con Flyway activado y aplica `V1__baseline.sql`: 12 tablas (11 de dominio
   más `flyway_schema_history`), extensión `pg_trgm` y `articles.search_vector` como columna
   generada `tsvector`.
+- El seed carga 8 noticias publicadas (más un borrador y una archivada para probar 404 y
+  410), 4 categorías, bandas y etiquetas.
 - Búsqueda full-text en español comprobada con `plainto_tsquery('spanish', ...)`.
-- El sitio servido por Caddy en http://localhost:8088 responde 200, hidrata sin errores de
-  consola y muestra «API operativa» tras llamar a `/api/v1/ping` a través del proxy.
+- El sitio servido por Caddy en http://localhost:8088 responde 200 y renderiza en servidor
+  portada, archivo, secciones, detalle, bandas y búsqueda; los 404/410 devuelven el status
+  HTTP correcto.
+- Hidratación sin errores de consola más allá de los 4xx esperados al pedir contenido
+  retirado o inexistente.
 
 Docker Desktop y WSL 2 se instalaron en esta máquina solo como entorno local; el proyecto
 no depende de esa configuración: cualquier Docker con contenedores Linux sirve.
-
