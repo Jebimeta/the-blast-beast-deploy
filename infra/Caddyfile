@@ -1,0 +1,23 @@
+# Local: HTTP en :80. Producción: SITE_DOMAIN=theblastbeast.com (TLS automático).
+{$SITE_DOMAIN:http://localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle /actuator/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:4000
+	}
+}

@@ -1,0 +1,12 @@
+.toolchain/
+the-blast-beast-api/
+the-blast-beast-web/
+.env
+.env.local
+node_modules/
+target/
+dist/
+.angular/
+*.log
+Thumbs.db
+.DS_Store

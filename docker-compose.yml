@@ -1,0 +1,63 @@
+name: the-blast-beast
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-blastbeast}
+      POSTGRES_USER: ${DB_USER:-blastbeast}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-blastbeast}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-blastbeast} -d ${DB_NAME:-blastbeast}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./the-blast-beast-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-blastbeast}
+      DB_USER: ${DB_USER:-blastbeast}
+      DB_PASSWORD: ${DB_PASSWORD:-blastbeast}
+      SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8088}
+      JWT_SECRET: ${JWT_SECRET:-}
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+
+  web:
+    build: ./the-blast-beast-web
+    depends_on:
+      - api
+    environment:
+      API_BASE_URL: http://api:8080
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - api
+      - web
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-http://localhost}
+    ports:
+      - "${CADDY_PORT:-8088}:80"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
