@@ -27,10 +27,20 @@ services:
       DB_USER: ${DB_USER:-blastbeast}
       DB_PASSWORD: ${DB_PASSWORD:-blastbeast}
       SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8088}
-      JWT_SECRET: ${JWT_SECRET:-}
+      # En producción, define JWT_SECRET en el entorno: este valor es solo para desarrollo.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-32-chars-min}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+      STORAGE_LOCAL_ROOT: /app/data/media
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:8088/media}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_DISPLAY_NAME: ${ADMIN_DISPLAY_NAME:-Redacción Blast Beast}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     ports:
       - "8080:8080"
+    volumes:
+      - media:/app/data/media
 
   web:
     build: ./the-blast-beast-web
@@ -60,5 +70,6 @@ services:
 
 volumes:
   pgdata:
+  media:
   caddy_data:
   caddy_config:
