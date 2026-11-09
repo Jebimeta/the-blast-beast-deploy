@@ -43,7 +43,10 @@ services:
       - media:/app/data/media
 
   web:
-    build: ./the-blast-beast-web
+    build:
+      context: ./the-blast-beast-web
+      args:
+        SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8088}
     depends_on:
       - api
     environment:

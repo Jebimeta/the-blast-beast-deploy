@@ -9,6 +9,22 @@
 		-Server
 	}
 
+	handle /sitemap.xml {
+		reverse_proxy api:8080
+	}
+
+	handle /robots.txt {
+		reverse_proxy api:8080
+	}
+
+	handle /feed.xml {
+		reverse_proxy api:8080
+	}
+
+	handle /categorias/*/feed.xml {
+		reverse_proxy api:8080
+	}
+
 	handle /api/* {
 		reverse_proxy api:8080
 	}

@@ -31,10 +31,11 @@ fuente de verdad del sistema:
 - [Arquitectura, modelo de datos, API y roadmap](./the-blast-beast-api/docs/01-arquitectura.md)
 - [M1 — Lectura pública: endpoints, seed y SEO](./the-blast-beast-api/docs/02-lectura-publica.md)
 - [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./the-blast-beast-api/docs/03-redaccion.md)
+- [M3 — SEO técnico: sitemap, robots, RSS, JSON-LD y prerender selectivo](./the-blast-beast-api/docs/04-seo.md)
 
 ## Estado
 
-**M2 — Redacción, completado y verificado en ejecución.**
+**M3 — SEO técnico y sindicación, completado y verificado en ejecución.**
 
 | Pieza | Estado |
 |---|---|
@@ -48,8 +49,11 @@ fuente de verdad del sistema:
 | Web pública: portada, archivo, secciones, detalle, bandas, búsqueda y 404/410 | ✅ |
 | Panel `/admin`: login, listado, editor con autoguardado, taxonomía y biblioteca | ✅ |
 | SEO: title, meta, canonical, OG, Twitter, JSON-LD con imagen y `noindex` en errores | ✅ |
+| SEO técnico: sitemap con imágenes, `robots.txt` dinámico y RSS global + por categoría | ✅ |
+| JSON-LD `WebSite`/`SearchAction`, `NewsArticle` y `BreadcrumbList` | ✅ |
+| Páginas `/sobre`, `/contacto` y `/privacidad` prerenderizadas; resto SSR | ✅ |
 | SSR por petición con estados HTTP reales (404/410) | ✅ |
-| Tests: 21 backend, 3 frontend | ✅ |
+| Tests: 29 backend, 7 frontend | ✅ |
 | Docker multi-stage (glibc para WebP) + volumen de medios + `/media/*` en Caddy | ✅ |
 | CI en GitHub Actions (build, tests, imagen GHCR) | ✅ escrito |
 
@@ -63,11 +67,14 @@ Rutas públicas del sitio:
 | `/articulos/:slug` | Detalle de la noticia |
 | `/bandas/:slug` | Banda y sus noticias |
 | `/buscar?q=` | Búsqueda full-text |
+| `/sobre` | Sobre el medio |
+| `/contacto` | Contacto de la redacción |
+| `/privacidad` | Política de privacidad |
 | `/admin/login` | Acceso a la redacción |
 
 Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2026!`.
 
-M3 (sitemap, RSS y prerender selectivo) es el siguiente hito.
+M4 (calidad: Testcontainers, e2e, accesibilidad y rendimiento) es el siguiente hito.
 
 ## Arranque rápido
 
@@ -85,6 +92,9 @@ datos se carga con el contenido de ejemplo. Para cambiar puertos, credenciales o
 - Panel de redacción: http://localhost:8088/admin/login
 - API a través de Caddy: http://localhost:8088/api/v1/articles
 - Medios a través de Caddy: http://localhost:8088/media/…
+- Sitemap: http://localhost:8088/sitemap.xml
+- RSS global: http://localhost:8088/feed.xml
+- Robots: http://localhost:8088/robots.txt
 - API directa: http://localhost:8080/api/v1/ping
 - Swagger: http://localhost:8080/swagger-ui.html
 - Health: http://localhost:8080/actuator/health
@@ -92,7 +102,9 @@ datos se carga con el contenido de ejemplo. Para cambiar puertos, credenciales o
 Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2026!`.
 
 `SITE_BASE_URL` (por defecto `http://localhost:8088`) alimenta canonical y Open Graph del
-SSR. En producción se apunta al dominio real y `ALLOWED_HOSTS` al host público.
+SSR y, en tiempo de build, el HTML prerenderizado de `/sobre`, `/contacto` y `/privacidad`.
+En producción se apunta al dominio real antes de construir la imagen y `ALLOWED_HOSTS` al
+host público.
 
 Desarrollo con recarga en caliente (solo la base de datos en Docker):
 
@@ -139,7 +151,7 @@ $env:Path = "$env:LOCALAPPDATA\Programs\DockerDesktop\resources\bin;$env:Path"
 
 ### Entorno verificado en esta máquina
 
-M1 y M2 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
+M1, M2 y M3 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
 
 - Docker Desktop 4.98 en modo usuario, backend WSL 2, Engine 29.9.2 y Compose v5.6.1.
 - `docker compose up -d --build` levanta PostgreSQL 17.11, la API, el SSR y Caddy; los cuatro
@@ -156,6 +168,13 @@ M1 y M2 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sus
 - El panel en `/admin` permite login, CRUD de artículos con autoguardado y revisiones,
   taxonomía y subida de medios; las variantes WebP se generan dentro del contenedor glibc y
   se sirven por `/media/*` a través de Caddy.
+- `/sitemap.xml` responde con URLs absolutas, `lastmod` e `image:loc` de la variante `hero`;
+  `/robots.txt` bloquea `/admin` y `/api/`; `/feed.xml` y `/categorias/{slug}/feed.xml`
+  devuelven RSS 2.0 con `content:encoded` y `media:content` en UTF-8.
+- Sitemap y feeds responden `304 Not Modified` con el ETag correcto.
+- `/sobre`, `/contacto` y `/privacidad` se sirven prerenderizadas con canonical absoluto al
+  origen público; la portada y el detalle publican JSON-LD `WebSite`, `NewsArticle` y
+  `BreadcrumbList`.
 - Hidratación sin errores de consola más allá de los 4xx esperados al pedir contenido
   retirado o inexistente.
 
