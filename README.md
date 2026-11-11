@@ -32,10 +32,11 @@ fuente de verdad del sistema:
 - [M1 — Lectura pública: endpoints, seed y SEO](./the-blast-beast-api/docs/02-lectura-publica.md)
 - [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./the-blast-beast-api/docs/03-redaccion.md)
 - [M3 — SEO técnico: sitemap, robots, RSS, JSON-LD y prerender selectivo](./the-blast-beast-api/docs/04-seo.md)
+- [M4 — Calidad: Testcontainers, e2e, accesibilidad y rendimiento](./the-blast-beast-api/docs/05-calidad.md)
 
 ## Estado
 
-**M3 — SEO técnico y sindicación, completado y verificado en ejecución.**
+**M4 — Calidad, completado y verificado en ejecución.**
 
 | Pieza | Estado |
 |---|---|
@@ -53,9 +54,12 @@ fuente de verdad del sistema:
 | JSON-LD `WebSite`/`SearchAction`, `NewsArticle` y `BreadcrumbList` | ✅ |
 | Páginas `/sobre`, `/contacto` y `/privacidad` prerenderizadas; resto SSR | ✅ |
 | SSR por petición con estados HTTP reales (404/410) | ✅ |
-| Tests: 29 backend, 7 frontend | ✅ |
+| Tests: 29 unitarios + 41 integración (Testcontainers) backend, 7 frontend, 12 e2e | ✅ |
+| Cobertura de servicios: 93,6 % de líneas (JaCoCo, mínimo 70 %) | ✅ |
+| Accesibilidad WCAG 2.1 AA con axe: 0 violaciones en público y panel | ✅ |
+| Lighthouse móvil (mediana de 3 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
 | Docker multi-stage (glibc para WebP) + volumen de medios + `/media/*` en Caddy | ✅ |
-| CI en GitHub Actions (build, tests, imagen GHCR) | ✅ escrito |
+| CI en GitHub Actions (build, tests, e2e + Lighthouse, imagen GHCR) | ✅ escrito |
 
 Rutas públicas del sitio:
 
@@ -74,7 +78,7 @@ Rutas públicas del sitio:
 
 Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2026!`.
 
-M4 (calidad: Testcontainers, e2e, accesibilidad y rendimiento) es el siguiente hito.
+M5 (producción: VPS, dominio, TLS, backups, monitorización y RGPD) es el siguiente hito.
 
 ## Arranque rápido
 
@@ -151,7 +155,7 @@ $env:Path = "$env:LOCALAPPDATA\Programs\DockerDesktop\resources\bin;$env:Path"
 
 ### Entorno verificado en esta máquina
 
-M1, M2 y M3 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
+M1–M4 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sustituto:
 
 - Docker Desktop 4.98 en modo usuario, backend WSL 2, Engine 29.9.2 y Compose v5.6.1.
 - `docker compose up -d --build` levanta PostgreSQL 17.11, la API, el SSR y Caddy; los cuatro
@@ -177,6 +181,14 @@ M1, M2 y M3 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un
   `BreadcrumbList`.
 - Hidratación sin errores de consola más allá de los 4xx esperados al pedir contenido
   retirado o inexistente.
+- El transfer cache de Angular reutiliza en el navegador las respuestas del SSR: la portada
+  se hidrata sin repetir peticiones a `/api`. `CacheControlFilter` marca el contenido público
+  como cacheable y el área privada como `no-store`.
+- `mvn clean verify`: 29 unitarios + 41 de integración con Testcontainers, JaCoCo en 93,6 %
+  de líneas de servicio.
+- `npm run e2e`: 12 tests de Playwright en verde; axe sin violaciones WCAG 2.1 AA.
+- `npm run lighthouse`: medianas de 0,92–0,96 en rendimiento, 0,98–1,00 en accesibilidad,
+  buenas prácticas y SEO sobre las cuatro URLs medidas.
 
 Docker Desktop y WSL 2 se instalaron en esta máquina solo como entorno local; el proyecto
 no depende de esa configuración: cualquier Docker con contenedores Linux sirve.
