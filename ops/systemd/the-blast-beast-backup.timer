@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer del backup diario de The Blast Beast
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=20min
+Persistent=true
+Unit=the-blast-beast-backup.service
+
+[Install]
+WantedBy=timers.target

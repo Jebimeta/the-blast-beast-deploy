@@ -1,0 +1,68 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Tag de imagen en GHCR (latest o SHA del commit)'
+        required: true
+        default: 'latest'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validar infraestructura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar docker-compose.prod.yml
+        run: |
+          docker compose --env-file .env.prod.example \
+            -f docker-compose.prod.yml config > /dev/null
+          echo "Compose válido."
+
+      - name: Validar Caddyfile de producción
+        run: |
+          docker run --rm \
+            -e SITE_DOMAIN=example.com \
+            -e ACME_EMAIL=admin@example.com \
+            -v "$PWD/infra/Caddyfile.prod:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+
+      - name: ShellCheck
+        run: shellcheck ops/*.sh
+
+  deploy:
+    name: Desplegar en el VPS
+    needs: validate
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar por SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          envs: IMAGE_TAG,GHCR_USER,GHCR_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/the-blast-beast
+            git fetch --prune origin main
+            git reset --hard origin/main
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            ./ops/deploy.sh "$IMAGE_TAG"
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

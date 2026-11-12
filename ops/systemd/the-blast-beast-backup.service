@@ -1,0 +1,14 @@
+[Unit]
+Description=Backup diario de The Blast Beast (PostgreSQL + medios)
+Documentation=https://github.com/Jebimeta/the-blast-beast-deploy
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/the-blast-beast
+ExecStart=/opt/the-blast-beast/ops/backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=30min

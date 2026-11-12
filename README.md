@@ -33,10 +33,11 @@ fuente de verdad del sistema:
 - [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./the-blast-beast-api/docs/03-redaccion.md)
 - [M3 — SEO técnico: sitemap, robots, RSS, JSON-LD y prerender selectivo](./the-blast-beast-api/docs/04-seo.md)
 - [M4 — Calidad: Testcontainers, e2e, accesibilidad y rendimiento](./the-blast-beast-api/docs/05-calidad.md)
+- [M5 — Producción: VPS, TLS, backups, monitorización y RGPD](./the-blast-beast-api/docs/06-produccion.md)
 
 ## Estado
 
-**M4 — Calidad, completado y verificado en ejecución.**
+**M5 — Producción: infraestructura implementada y validada en local; despliegue real pendiente de VPS, dominio y datos legales.**
 
 | Pieza | Estado |
 |---|---|
@@ -59,7 +60,13 @@ fuente de verdad del sistema:
 | Accesibilidad WCAG 2.1 AA con axe: 0 violaciones en público y panel | ✅ |
 | Lighthouse móvil (mediana de 3 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
 | Docker multi-stage (glibc para WebP) + volumen de medios + `/media/*` en Caddy | ✅ |
-| CI en GitHub Actions (build, tests, e2e + Lighthouse, imagen GHCR) | ✅ escrito |
+| CI en GitHub Actions (build, tests, e2e + Lighthouse, imagen GHCR) | ✅ en verde |
+| Stack de producción: solo Caddy expuesto, redes internas, límites y logs rotados | ✅ validado en local |
+| TLS automático, redirección `www` → apex y cabeceras/CSP estrictas | ✅ `caddy validate` |
+| Backups de PostgreSQL + medios con checksum, retención y cifrado age opcional | ✅ restauración aplicada |
+| Monitorización cada 2 min con alertas por webhook y comprobación de TLS/disco | ✅ validado en local |
+| Hardening del VPS (UFW, fail2ban, unattended-upgrades, SSH por clave) | ✅ documentado |
+| CD por SSH con healthchecks, smoke test y rollback de imagen | ✅ validación en CI |
 
 Rutas públicas del sitio:
 
@@ -78,7 +85,11 @@ Rutas públicas del sitio:
 
 Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2026!`.
 
-M5 (producción: VPS, dominio, TLS, backups, monitorización y RGPD) es el siguiente hito.
+M5 deja preparado el despliegue real: imágenes en GHCR, Caddy con TLS automático,
+secretos fuera del repositorio, backups con restauración probada, monitorización y
+hardening. El paso a producción está bloqueado solo por el VPS, el dominio/DNS, el acceso
+SSH y los datos legales del titular. El runbook completo está en
+[`docs/06-produccion.md`](./the-blast-beast-api/docs/06-produccion.md).
 
 ## Arranque rápido
 
@@ -109,6 +120,22 @@ Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2
 SSR y, en tiempo de build, el HTML prerenderizado de `/sobre`, `/contacto` y `/privacidad`.
 En producción se apunta al dominio real antes de construir la imagen y `ALLOWED_HOSTS` al
 host público.
+
+### Producción
+
+El stack de producción no compila en el servidor: descarga las imágenes de GHCR y solo
+expone Caddy en 80/443. Los secretos viven en `.env.prod` (permisos 600, ignorado por git),
+generado con `ops/generate-env.sh` a partir de `.env.prod.example`.
+
+```bash
+cp .env.prod.example .env.prod   # o ./ops/generate-env.sh
+docker compose --env-file .env.prod -f docker-compose.prod.yml config
+./ops/deploy.sh latest
+```
+
+El despliegue real, TLS, backups, restauración, monitorización, hardening y checklist
+RGPD están en
+[`docs/06-produccion.md`](./the-blast-beast-api/docs/06-produccion.md).
 
 Desarrollo con recarga en caliente (solo la base de datos en Docker):
 

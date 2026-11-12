@@ -3,6 +3,11 @@ the-blast-beast-api/
 the-blast-beast-web/
 .env
 .env.local
+.env.prod
+.env.prod.*
+!.env.prod.example
+.deployed-tag
+backups/
 node_modules/
 target/
 dist/

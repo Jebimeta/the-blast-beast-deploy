@@ -1,0 +1,154 @@
+name: the-blast-beast
+
+# Stack de producción.
+#
+# Diferencias deliberadas con `docker-compose.yml` (desarrollo):
+#   - Solo Caddy publica puertos. PostgreSQL, la API y el SSR quedan en redes
+#     internas y no son accesibles desde fuera del VPS.
+#   - Las imágenes vienen de GHCR; no se construyen en el servidor.
+#   - Los secretos se leen de `.env.prod` (nunca versionado).
+#   - Logs de Docker rotados y límites de memoria para un VPS pequeño.
+#
+# Uso:
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-hardening: &default-hardening
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    <<: *default-hardening
+    environment:
+      POSTGRES_DB: ${DB_NAME:?define DB_NAME en .env.prod}
+      POSTGRES_USER: ${DB_USER:?define DB_USER en .env.prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en .env.prod}
+      TZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - internal
+    mem_limit: 512m
+    logging: *default-logging
+
+  api:
+    image: ghcr.io/jebimeta/the-blast-beast-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    <<: *default-hardening
+    init: true
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SITE_BASE_URL: ${SITE_BASE_URL:?define SITE_BASE_URL en .env.prod}
+      JWT_SECRET: ${JWT_SECRET:?define JWT_SECRET en .env.prod}
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+      STORAGE_LOCAL_ROOT: /app/data/media
+      STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:?define STORAGE_PUBLIC_BASE_URL en .env.prod}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_DISPLAY_NAME: ${ADMIN_DISPLAY_NAME:-Redacción Blast Beast}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - media:/app/data/media
+    networks:
+      - edge
+      - internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"'",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+    mem_limit: 768m
+    logging: *default-logging
+
+  web:
+    image: ghcr.io/jebimeta/the-blast-beast-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    <<: *default-hardening
+    init: true
+    environment:
+      API_BASE_URL: http://api:8080
+      SITE_BASE_URL: ${SITE_BASE_URL:?define SITE_BASE_URL en .env.prod}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?define ALLOWED_HOSTS en .env.prod}
+      PORT: 4000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/ > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    <<: *default-hardening
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?define SITE_DOMAIN en .env.prod}
+      ACME_EMAIL: ${ACME_EMAIL:?define ACME_EMAIL en .env.prod}
+    volumes:
+      - ./infra/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 80 && nc -z 127.0.0.1 443"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 128m
+    logging: *default-logging
+
+volumes:
+  pgdata:
+  media:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+  internal:
+    internal: true

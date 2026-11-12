@@ -1,13 +1,28 @@
-# Local: HTTP en :80. Producción: SITE_DOMAIN=theblastbeast.com (TLS automático).
+# Local: HTTP en :80. Producción: `infra/Caddyfile.prod` con TLS automático.
 {$SITE_DOMAIN:http://localhost} {
 	encode zstd gzip
 
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		# El hash corresponde al loader inline de CSS crítico de Beasties que
+		# genera el build de Angular. Si Angular cambia ese script, hay que
+		# actualizar el hash (el navegador lo muestra en el error de CSP).
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-LMY6wYoFV9I4wWzxaq1N/dTpl4iurQktw706UCHK3vM='; connect-src 'self'; manifest-src 'self'"
 		-Server
 	}
+
+	request_body {
+		max_size 12MB
+	}
+
+	# No se publican ni el healthcheck ni la documentación de la API.
+	@internal path /actuator/* /swagger-ui* /v3/api-docs*
+	respond @internal 404
 
 	handle /sitemap.xml {
 		reverse_proxy api:8080
@@ -33,11 +48,12 @@
 		reverse_proxy api:8080
 	}
 
-	handle /actuator/* {
-		reverse_proxy api:8080
-	}
-
 	handle {
 		reverse_proxy web:4000
+	}
+
+	log {
+		output stdout
+		format json
 	}
 }

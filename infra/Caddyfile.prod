@@ -1,0 +1,74 @@
+# Caddy de producción: TLS automático con Let's Encrypt y cabeceras estrictas.
+#
+# `SITE_DOMAIN` debe ser el dominio apex (sin esquema ni www), por ejemplo
+# `theblastbeast.com`. `www.` se redirige al apex con 301.
+
+{
+	email {$ACME_EMAIL}
+	admin off
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		# El hash corresponde al loader inline de CSS crítico de Beasties que
+		# genera el build de Angular. Si Angular cambia ese script, hay que
+		# actualizar el hash (el navegador lo muestra en el error de CSP).
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-LMY6wYoFV9I4wWzxaq1N/dTpl4iurQktw706UCHK3vM='; connect-src 'self'; manifest-src 'self'; upgrade-insecure-requests"
+		-Server
+	}
+
+	# La API limita el multipart a 12 MB; Caddy corta antes de llegar a Java.
+	request_body {
+		max_size 12MB
+	}
+
+	# Actuator, Swagger y el contrato OpenAPI no se publican en producción.
+	# El healthcheck de Docker va directo al contenedor de la API.
+	@internal path /actuator/* /swagger-ui* /v3/api-docs*
+	respond @internal 404
+
+	handle /sitemap.xml {
+		reverse_proxy api:8080
+	}
+
+	handle /robots.txt {
+		reverse_proxy api:8080
+	}
+
+	handle /feed.xml {
+		reverse_proxy api:8080
+	}
+
+	handle /categorias/*/feed.xml {
+		reverse_proxy api:8080
+	}
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle /media/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:4000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

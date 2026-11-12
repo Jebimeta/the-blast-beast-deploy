@@ -1,0 +1,12 @@
+[Unit]
+Description=Healthcheck de The Blast Beast
+Documentation=https://github.com/Jebimeta/the-blast-beast-deploy
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/the-blast-beast
+ExecStart=/opt/the-blast-beast/ops/healthcheck.sh
+Nice=10
+TimeoutStartSec=2min

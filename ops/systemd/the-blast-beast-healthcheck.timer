@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer del healthcheck de The Blast Beast
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=30s
+Unit=the-blast-beast-healthcheck.service
+
+[Install]
+WantedBy=timers.target
