@@ -101,7 +101,8 @@ COUNTS="$("${COMPOSE[@]}" exec -T db psql -U "$DB_USER" -d "$DB_NAME" -Atc "
 {
   echo "timestamp=$TIMESTAMP"
   echo "db_name=$DB_NAME"
-  echo "image_tag=${IMAGE_TAG:-unknown}"
+  echo "api_image_tag=${API_IMAGE_TAG:-unknown}"
+  echo "web_image_tag=${WEB_IMAGE_TAG:-unknown}"
   echo "media_files=$MEDIA_FILES"
   echo "counts:"
   echo "$COUNTS" | awk '{print "count." $0}'

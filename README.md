@@ -42,23 +42,25 @@ fuente de verdad del sistema:
 | Pieza | Estado |
 |---|---|
 | Contrato OpenAPI 3.0 con endpoints públicos, de auth y de redacción | ✅ |
-| Esquema Flyway `V1__baseline.sql` (11 tablas, full-text, `pg_trgm`) | ✅ PostgreSQL 17.11 |
-| API pública: artículos, destacados, detalle, categorías, bandas y búsqueda | ✅ |
+| Esquema Flyway `V1`–`V3` (16 tablas, full-text, `pg_trgm`) | ✅ PostgreSQL 17.11 |
+| API pública: artículos, destacados, detalle, categorías, bandas, búsqueda y radar | ✅ |
 | Auth: JWT en memoria + refresco opaco en cookie HttpOnly con rotación y detección de reuso | ✅ |
 | CRUD de artículos con estados, revisiones restaurables y vista previa Markdown saneada | ✅ |
 | Medios: subida, variantes WebP `thumb`/`hero`, protección de imágenes en uso | ✅ |
 | Taxonomía editable: categorías, bandas y etiquetas | ✅ |
-| Web pública: portada, archivo, secciones, detalle, bandas, búsqueda y 404/410 | ✅ |
-| Panel `/admin`: login, listado, editor con autoguardado, taxonomía y biblioteca | ✅ |
+| Web pública: portada, archivo, secciones (Noticias por etiqueta), detalle, bandas, búsqueda y 404/410 | ✅ |
+| Pie con enlaces a Facebook, X, WhatsApp e Instagram (URLs provisionales) | ✅ |
+| Panel `/admin`: login, listado, editor con autoguardado, radar, taxonomía y biblioteca | ✅ |
+| Difusión en redes: variantes editables para X, Facebook, Instagram y WhatsApp con IA opcional y plantilla local | ✅ |
 | SEO: title, meta, canonical, OG, Twitter, JSON-LD con imagen y `noindex` en errores | ✅ |
 | SEO técnico: sitemap con imágenes, `robots.txt` dinámico y RSS global + por categoría | ✅ |
 | JSON-LD `WebSite`/`SearchAction`, `NewsArticle` y `BreadcrumbList` | ✅ |
 | Páginas `/sobre`, `/contacto` y `/privacidad` prerenderizadas; resto SSR | ✅ |
 | SSR por petición con estados HTTP reales (404/410) | ✅ |
-| Tests: 29 unitarios + 41 integración (Testcontainers) backend, 7 frontend, 12 e2e | ✅ |
-| Cobertura de servicios: 93,6 % de líneas (JaCoCo, mínimo 70 %) | ✅ |
+| Tests: 65 unitarios + 57 integración (Testcontainers) backend, 27 frontend, 27 e2e | ✅ |
+| Cobertura de servicios: 92,2 % de líneas (JaCoCo, mínimo 70 %) | ✅ |
 | Accesibilidad WCAG 2.1 AA con axe: 0 violaciones en público y panel | ✅ |
-| Lighthouse móvil (mediana de 3 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
+| Lighthouse móvil (mediana de 5 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
 | Docker multi-stage (glibc para WebP) + volumen de medios + `/media/*` en Caddy | ✅ |
 | CI en GitHub Actions (build, tests, e2e + Lighthouse, imagen GHCR) | ✅ en verde |
 | Stack de producción: solo Caddy expuesto, redes internas, límites y logs rotados | ✅ validado en local |
@@ -84,6 +86,9 @@ Rutas públicas del sitio:
 | `/admin/login` | Acceso a la redacción |
 
 Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2026!`.
+
+El radar de lanzamientos está implementado de punta a punta (API, panel editorial y página),
+pero su sección pública permanece oculta hasta su lanzamiento.
 
 M5 deja preparado el despliegue real: imágenes en GHCR, Caddy con TLS automático,
 secretos fuera del repositorio, backups con restauración probada, monitorización y
@@ -130,7 +135,14 @@ generado con `ops/generate-env.sh` a partir de `.env.prod.example`.
 ```bash
 cp .env.prod.example .env.prod   # o ./ops/generate-env.sh
 docker compose --env-file .env.prod -f docker-compose.prod.yml config
-./ops/deploy.sh latest
+./ops/deploy.sh latest latest
+```
+
+En producción, despliega con los SHA de cada repo para que el rollback sea real:
+
+```bash
+./ops/deploy.sh <sha-api> <sha-web>
+./ops/deploy.sh --rollback
 ```
 
 El despliegue real, TLS, backups, restauración, monitorización, hardening y checklist
@@ -201,7 +213,8 @@ M1–M4 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sus
   se sirven por `/media/*` a través de Caddy.
 - `/sitemap.xml` responde con URLs absolutas, `lastmod` e `image:loc` de la variante `hero`;
   `/robots.txt` bloquea `/admin` y `/api/`; `/feed.xml` y `/categorias/{slug}/feed.xml`
-  devuelven RSS 2.0 con `content:encoded` y `media:content` en UTF-8.
+  devuelven RSS 2.0 con `content:encoded` y `media:content` en UTF-8. El feed de Noticias
+  comparte el filtro por etiqueta de su sección.
 - Sitemap y feeds responden `304 Not Modified` con el ETag correcto.
 - `/sobre`, `/contacto` y `/privacidad` se sirven prerenderizadas con canonical absoluto al
   origen público; la portada y el detalle publican JSON-LD `WebSite`, `NewsArticle` y
@@ -211,10 +224,14 @@ M1–M4 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sus
 - El transfer cache de Angular reutiliza en el navegador las respuestas del SSR: la portada
   se hidrata sin repetir peticiones a `/api`. `CacheControlFilter` marca el contenido público
   como cacheable y el área privada como `no-store`.
-- `mvn clean verify`: 29 unitarios + 41 de integración con Testcontainers, JaCoCo en 93,6 %
+- `mvn clean verify`: 65 unitarios + 57 de integración con Testcontainers, JaCoCo en 92,2 %
   de líneas de servicio.
-- `npm run e2e`: 12 tests de Playwright en verde; axe sin violaciones WCAG 2.1 AA.
-- `npm run lighthouse`: medianas de 0,92–0,96 en rendimiento, 0,98–1,00 en accesibilidad,
+- `npm run e2e`: 27 tests de Playwright en verde; axe sin violaciones WCAG 2.1 AA. La sección
+  Noticias solo lista artículos con la etiqueta `noticias` y su feed aplica el mismo filtro.
+- El editor genera las cuatro variantes de difusión con la plantilla local (sin `AI_API_KEY`)
+  y las muestra editables; con clave usa un proveedor compatible con OpenAI. Nada se publica
+  automáticamente.
+- `npm run lighthouse`: medianas de 0,91–1,00 en rendimiento, 1,00 en accesibilidad,
   buenas prácticas y SEO sobre las cuatro URLs medidas.
 
 Docker Desktop y WSL 2 se instalaron en esta máquina solo como entorno local; el proyecto

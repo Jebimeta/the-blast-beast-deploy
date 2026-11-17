@@ -149,8 +149,8 @@ Siguientes pasos:
      por contraseña siguiendo docs/06-produccion.md (no reinicies sshd sin
      comprobar antes 'sshd -t').
   2. Clona el repo en /opt/the-blast-beast y ejecuta ./ops/generate-env.sh.
-  3. Haz docker login ghcr.io (o publica los paquetes de GHCR).
-  4. ./ops/deploy.sh latest
+  3. Las imágenes de GHCR son públicas; no hace falta login salvo que las privatices.
+  4. ./ops/deploy.sh latest latest
 
 Comprueba el firewall con: ufw status verbose
 EOF

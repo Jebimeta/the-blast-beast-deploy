@@ -47,7 +47,7 @@ services:
     logging: *default-logging
 
   api:
-    image: ghcr.io/jebimeta/the-blast-beast-api:${IMAGE_TAG:-latest}
+    image: ghcr.io/jebimeta/the-blast-beast-api:${API_IMAGE_TAG:-latest}
     restart: unless-stopped
     <<: *default-hardening
     init: true
@@ -65,6 +65,12 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_DISPLAY_NAME: ${ADMIN_DISPLAY_NAME:-Redacción Blast Beast}
+      TICKETMASTER_ENABLED: ${TICKETMASTER_ENABLED:-false}
+      TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_TIMEOUT: ${AI_TIMEOUT:-20s}
     depends_on:
       db:
         condition: service_healthy
@@ -88,7 +94,7 @@ services:
     logging: *default-logging
 
   web:
-    image: ghcr.io/jebimeta/the-blast-beast-web:${IMAGE_TAG:-latest}
+    image: ghcr.io/jebimeta/the-blast-beast-web:${WEB_IMAGE_TAG:-latest}
     restart: unless-stopped
     <<: *default-hardening
     init: true

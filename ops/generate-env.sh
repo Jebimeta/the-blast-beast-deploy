@@ -80,7 +80,22 @@ ADMIN_EMAIL=$ADMIN_EMAIL
 ADMIN_PASSWORD=$ADMIN_PASSWORD
 ADMIN_DISPLAY_NAME=Redacción Blast Beast
 
-IMAGE_TAG=latest
+# Agenda de conciertos. Rellena TICKETMASTER_API_KEY y pon ENABLED=true para
+# importar automáticamente los conciertos de España.
+TICKETMASTER_ENABLED=false
+TICKETMASTER_API_KEY=
+
+# Difusión en redes (IA opcional). Sin AI_API_KEY se usa una plantilla local y
+# el texto del artículo no sale del servidor.
+AI_BASE_URL=https://api.openai.com/v1
+AI_API_KEY=
+AI_MODEL=gpt-4o-mini
+AI_TIMEOUT=20s
+
+# Imágenes a desplegar. 'latest' o el SHA del commit publicado en cada repo.
+# En producción usa SHA inmutables: API y web son repos distintos.
+API_IMAGE_TAG=latest
+WEB_IMAGE_TAG=latest
 
 BACKUP_DIR=/var/backups/the-blast-beast
 BACKUP_RETENTION_DAYS=14
@@ -102,8 +117,9 @@ Guarda estas credenciales en tu gestor de contraseñas; no se vuelven a mostrar:
 
 Siguientes pasos:
   1. Revisa BACKUP_AGE_RECIPIENT y ALERT_WEBHOOK_URL en $ENV_FILE.
-  2. Haz login en GHCR en el servidor (o publica las imágenes).
-  3. ./ops/deploy.sh latest
+  2. Las imágenes de GHCR son públicas; no hace falta login salvo que las privatices.
+  3. ./ops/deploy.sh latest latest
 
-Cambia la contraseña del administrador después del primer acceso.
+Para desplegar una versión concreta:
+  ./ops/deploy.sh <sha-api> <sha-web>
 EOF
