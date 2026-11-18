@@ -45,13 +45,14 @@ fuente de verdad del sistema:
 | Esquema Flyway `V1`–`V3` (16 tablas, full-text, `pg_trgm`) | ✅ PostgreSQL 17.11 |
 | API pública: artículos, destacados, detalle, categorías, bandas, búsqueda y radar | ✅ |
 | Auth: JWT en memoria + refresco opaco en cookie HttpOnly con rotación y detección de reuso | ✅ |
+| CORS cerrado a los orígenes del sitio (`CORS_ALLOWED_ORIGINS`), con credenciales y sin `*` | ✅ |
 | Cambio de contraseña en `/admin/cuenta` y reset por consola con perfil `reset-password` | ✅ |
 | Límite de intentos de login por IP y por IP + email con `429` y `Retry-After` | ✅ |
 | CRUD de artículos con estados, revisiones restaurables y vista previa Markdown saneada | ✅ |
 | Medios: subida, variantes WebP `thumb`/`hero`, protección de imágenes en uso | ✅ |
 | Taxonomía editable: categorías, bandas y etiquetas | ✅ |
 | Web pública: portada, archivo, secciones (Noticias por etiqueta), detalle, bandas, búsqueda y 404/410 | ✅ |
-| Pie con enlaces a Facebook, X, WhatsApp e Instagram (URLs provisionales) | ✅ |
+| Pie con agenda, páginas legales y feed; sin redes sociales hasta tener perfiles reales | ✅ |
 | Panel `/admin`: login, listado, editor con autoguardado, radar, taxonomía, biblioteca y cuenta | ✅ |
 | Difusión en redes: variantes editables para X, Facebook, Instagram y WhatsApp con IA opcional y plantilla local | ✅ |
 | SEO: title, meta, canonical, OG, Twitter, JSON-LD con imagen y `noindex` en errores | ✅ |
@@ -60,7 +61,7 @@ fuente de verdad del sistema:
 | Páginas `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal` prerenderizadas; agenda y resto SSR | ✅ |
 | Agenda pública `/agenda` y `/agenda/:slug` con filtros, JSON-LD y sitemap | ✅ |
 | SSR por petición con estados HTTP reales (404/410) | ✅ |
-| Tests: 79 unitarios + 63 integración (Testcontainers) backend, 33 frontend, 31 e2e | ✅ |
+| Tests: 85 unitarios + 67 integración (Testcontainers) backend, 33 frontend, 31 e2e | ✅ |
 | Cobertura de servicios: 92,3 % de líneas (JaCoCo, mínimo 70 %) | ✅ |
 | Accesibilidad WCAG 2.1 AA con axe: 0 violaciones en público y panel | ✅ |
 | Lighthouse móvil (mediana de 5 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
@@ -233,7 +234,7 @@ M1–M4 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sus
 - El transfer cache de Angular reutiliza en el navegador las respuestas del SSR: la portada
   se hidrata sin repetir peticiones a `/api`. `CacheControlFilter` marca el contenido público
   como cacheable y el área privada como `no-store`.
-- `mvn clean verify`: 79 unitarios + 63 de integración con Testcontainers, JaCoCo en 92,3 %
+- `mvn clean verify`: 85 unitarios + 67 de integración con Testcontainers, JaCoCo en 92,3 %
   de líneas de servicio.
 - `npm run e2e`: 31 tests de Playwright en verde; axe sin violaciones WCAG 2.1 AA. La
   sección Noticias solo lista artículos con la etiqueta `noticias` y su feed aplica el mismo

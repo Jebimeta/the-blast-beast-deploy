@@ -27,6 +27,8 @@ services:
       DB_USER: ${DB_USER:-blastbeast}
       DB_PASSWORD: ${DB_PASSWORD:-blastbeast}
       SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8088}
+      # Vacío = usa SITE_BASE_URL; si se define, lo sustituye. Separa con comas.
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       # En producción, define JWT_SECRET en el entorno: este valor es solo para desarrollo.
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-32-chars-min}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
