@@ -57,9 +57,10 @@ fuente de verdad del sistema:
 | SEO: title, meta, canonical, OG, Twitter, JSON-LD con imagen y `noindex` en errores | ✅ |
 | SEO técnico: sitemap con imágenes, `robots.txt` dinámico y RSS global + por categoría | ✅ |
 | JSON-LD `WebSite`/`SearchAction`, `NewsArticle` y `BreadcrumbList` | ✅ |
-| Páginas `/sobre`, `/contacto` y `/privacidad` prerenderizadas; resto SSR | ✅ |
+| Páginas `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal` prerenderizadas; agenda y resto SSR | ✅ |
+| Agenda pública `/agenda` y `/agenda/:slug` con filtros, JSON-LD y sitemap | ✅ |
 | SSR por petición con estados HTTP reales (404/410) | ✅ |
-| Tests: 78 unitarios + 63 integración (Testcontainers) backend, 32 frontend, 27 e2e | ✅ |
+| Tests: 79 unitarios + 63 integración (Testcontainers) backend, 33 frontend, 31 e2e | ✅ |
 | Cobertura de servicios: 92,3 % de líneas (JaCoCo, mínimo 70 %) | ✅ |
 | Accesibilidad WCAG 2.1 AA con axe: 0 violaciones en público y panel | ✅ |
 | Lighthouse móvil (mediana de 5 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
@@ -81,10 +82,13 @@ Rutas públicas del sitio:
 | `/categorias/:slug` | Sección |
 | `/articulos/:slug` | Detalle de la noticia |
 | `/bandas/:slug` | Banda y sus noticias |
+| `/agenda` | Agenda de conciertos con filtros por género, ciudad, banda y fecha |
+| `/agenda/:slug` | Detalle de un concierto con entradas y recinto |
 | `/buscar?q=` | Búsqueda full-text |
 | `/sobre` | Sobre el medio |
 | `/contacto` | Contacto de la redacción |
 | `/privacidad` | Política de privacidad |
+| `/aviso-legal` | Titular, condiciones de uso y propiedad intelectual |
 | `/admin/login` | Acceso a la redacción |
 | `/admin/cuenta` | Cambio de contraseña del usuario autenticado |
 
@@ -125,9 +129,9 @@ datos se carga con el contenido de ejemplo. Para cambiar puertos, credenciales o
 Credenciales del seed de desarrollo: `redaccion@theblastbeast.com` / `Redaccion2026!`.
 
 `SITE_BASE_URL` (por defecto `http://localhost:8088`) alimenta canonical y Open Graph del
-SSR y, en tiempo de build, el HTML prerenderizado de `/sobre`, `/contacto` y `/privacidad`.
-En producción se apunta al dominio real antes de construir la imagen y `ALLOWED_HOSTS` al
-host público.
+SSR y, en tiempo de build, el HTML prerenderizado de `/sobre`, `/contacto`, `/privacidad` y
+`/aviso-legal`. En producción se apunta al dominio real antes de construir la imagen y
+`ALLOWED_HOSTS` al host público.
 
 ### Producción
 
@@ -215,22 +219,25 @@ M1–M4 se validaron de extremo a extremo sobre PostgreSQL real, no sobre un sus
   taxonomía y subida de medios; las variantes WebP se generan dentro del contenedor glibc y
   se sirven por `/media/*` a través de Caddy.
 - `/sitemap.xml` responde con URLs absolutas, `lastmod` e `image:loc` de la variante `hero`;
-  `/robots.txt` bloquea `/admin` y `/api/`; `/feed.xml` y `/categorias/{slug}/feed.xml`
-  devuelven RSS 2.0 con `content:encoded` y `media:content` en UTF-8. El feed de Noticias
-  comparte el filtro por etiqueta de su sección.
+  incluye la agenda y los conciertos próximos visibles. `/robots.txt` bloquea `/admin` y
+  `/api/`; `/feed.xml` y `/categorias/{slug}/feed.xml` devuelven RSS 2.0 con
+  `content:encoded` y `media:content` en UTF-8. El feed de Noticias comparte el filtro por
+  etiqueta de su sección.
 - Sitemap y feeds responden `304 Not Modified` con el ETag correcto.
-- `/sobre`, `/contacto` y `/privacidad` se sirven prerenderizadas con canonical absoluto al
-  origen público; la portada y el detalle publican JSON-LD `WebSite`, `NewsArticle` y
-  `BreadcrumbList`.
+- `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal` se sirven prerenderizadas con
+  canonical absoluto al origen público; la portada y el detalle publican JSON-LD `WebSite`,
+  `NewsArticle` y `BreadcrumbList`. La agenda publica `ItemList` y cada concierto
+  `Event` + `BreadcrumbList`.
 - Hidratación sin errores de consola más allá de los 4xx esperados al pedir contenido
   retirado o inexistente.
 - El transfer cache de Angular reutiliza en el navegador las respuestas del SSR: la portada
   se hidrata sin repetir peticiones a `/api`. `CacheControlFilter` marca el contenido público
   como cacheable y el área privada como `no-store`.
-- `mvn clean verify`: 78 unitarios + 63 de integración con Testcontainers, JaCoCo en 92,3 %
+- `mvn clean verify`: 79 unitarios + 63 de integración con Testcontainers, JaCoCo en 92,3 %
   de líneas de servicio.
-- `npm run e2e`: 27 tests de Playwright en verde; axe sin violaciones WCAG 2.1 AA. La sección
-  Noticias solo lista artículos con la etiqueta `noticias` y su feed aplica el mismo filtro.
+- `npm run e2e`: 31 tests de Playwright en verde; axe sin violaciones WCAG 2.1 AA. La
+  sección Noticias solo lista artículos con la etiqueta `noticias` y su feed aplica el mismo
+  filtro.
 - El editor genera las cuatro variantes de difusión con la plantilla local (sin `AI_API_KEY`)
   y las muestra editables; con clave usa un proveedor compatible con OpenAI. Nada se publica
   automáticamente.
