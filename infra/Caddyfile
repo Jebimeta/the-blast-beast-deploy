@@ -1,3 +1,11 @@
+# La API está detrás de Caddy. Sobrescribimos X-Forwarded-For con la IP real
+# del cliente para que el límite de login por IP no se pueda falsificar.
+(api_proxy) {
+	reverse_proxy api:8080 {
+		header_up X-Forwarded-For {remote_host}
+	}
+}
+
 # Local: HTTP en :80. Producción: `infra/Caddyfile.prod` con TLS automático.
 {$SITE_DOMAIN:http://localhost} {
 	encode zstd gzip
@@ -25,27 +33,27 @@
 	respond @internal 404
 
 	handle /sitemap.xml {
-		reverse_proxy api:8080
+		import api_proxy
 	}
 
 	handle /robots.txt {
-		reverse_proxy api:8080
+		import api_proxy
 	}
 
 	handle /feed.xml {
-		reverse_proxy api:8080
+		import api_proxy
 	}
 
 	handle /categorias/*/feed.xml {
-		reverse_proxy api:8080
+		import api_proxy
 	}
 
 	handle /api/* {
-		reverse_proxy api:8080
+		import api_proxy
 	}
 
 	handle /media/* {
-		reverse_proxy api:8080
+		import api_proxy
 	}
 
 	handle {
