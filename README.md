@@ -61,7 +61,7 @@ fuente de verdad del sistema:
 | Páginas `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal` prerenderizadas; agenda y resto SSR | ✅ |
 | Agenda pública `/agenda` y `/agenda/:slug` con filtros, JSON-LD y sitemap | ✅ |
 | SSR por petición con estados HTTP reales (404/410) | ✅ |
-| Tests: 85 unitarios + 67 integración (Testcontainers) backend, 33 frontend, 31 e2e | ✅ |
+| Tests: 85 unitarios + 67 integración (Testcontainers) backend, 37 frontend, 31 e2e | ✅ |
 | Cobertura de servicios: 92,3 % de líneas (JaCoCo, mínimo 70 %) | ✅ |
 | Accesibilidad WCAG 2.1 AA con axe: 0 violaciones en público y panel | ✅ |
 | Lighthouse móvil (mediana de 5 pasadas): rendimiento ≥ 0,90, SEO ≥ 0,95 | ✅ |
